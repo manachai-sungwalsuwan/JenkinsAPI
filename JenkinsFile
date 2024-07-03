@@ -1,0 +1,31 @@
+pipeline {
+    agent any
+    environment {
+        dotnet = 'C:\\Program Files\\dotnet\\dotnet.exe'
+    }
+    stages {
+        stage('Checkout Stage') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Build Stage') {
+            steps {
+                bat 'C:\\ProgramData\\Jenkins\\.jenkins\\workspace\\TestPipeline\\JenkinsAPI.sln --configuration Release'
+            }
+        }
+        stage("Release Stage") {
+            steps {
+                bat 'dotnet build %WORKSPACE%\\JenkinsAPI.sln /p:PublishProfile=" %WORKSPACE%\\JenkinsAPI\\Properties\\PublishProfiles\\FolderProfile.pubxml" /p:Platform="Any CPU" /p:DeployOnBuild=true /m'
+            }
+        }
+        stage('Deploy Stage') {
+            steps {
+                //Deploy application on IIS
+                bat 'net stop "w3svc"'
+                bat '"C:\\Program Files (x86)\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe" -verb:sync -source:package="%WORKSPACE%\\JenkinsAPI\\bin\\Debug\\net7.0\\JenkinsAPI.zip" -dest:auto -setParam:"IIS Web Application Name"="JenkinsAPI" -skip:objectName=filePath,absolutePath=".\\\\PackagDemoeTmp\\\\Web.config$" -enableRule:DoNotDelete -allowUntrusted=true'
+                bat 'net start "w3svc"'
+            }
+        }
+    }
+}
